@@ -1,7 +1,10 @@
+# docker run -it --rm -p 10000:10000 joustokontti
+
 FROM clojure:latest
 
-ADD project.clj src/ /usr/local/src/joustokontti/
-
 WORKDIR /usr/local/src/joustokontti
+ADD project.clj ./
+ADD src ./src
+RUN lein deps
 
-ENTRYPOINT bash
+ENTRYPOINT ["lein", "run"]
