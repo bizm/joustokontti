@@ -9,4 +9,19 @@
                  [aleph "0.4.6"]
                  [hiccup "1.0.5"]
                  [bidi "2.1.3"]]
-  :main joustokontti.main)
+
+  :main joustokontti.main
+
+  ;; TODO: Why all these?! Should i move them to aws profile?
+  ;; :target-path "target/%s"
+  ;; alias "lein templates" to find and encode any templates in the project
+  ;; :aliases {"templates" ["run" "-m" crucible.encoding.main]}
+
+  ;; lein with-profile aws repl
+  :profiles {:aws {:source-paths ["aws"]
+                   :main infra.main
+                   :dependencies [[nrepl "0.6.0"]
+                                  [org.clojure/data.json "0.2.7"]
+                                  ;; [cheshire "5.10.0"]
+                                  [clj-commons/clj-yaml "0.7.0"]
+                                  [crucible "0.45.2"]]}})

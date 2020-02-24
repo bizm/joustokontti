@@ -1,4 +1,4 @@
-(ns aws.main
+(ns infra.main
   (:require
     [crucible.core :refer [template parameter resource output xref encode join]]
     [crucible.encoding :refer [build]]))

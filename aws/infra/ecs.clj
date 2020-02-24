@@ -1,4 +1,4 @@
-(ns aws.infra
+(ns infra.ecs
   (:require [crucible.aws.s3 :as s3]
             [crucible.aws.ecs :as ecs]
             [crucible.core :refer [template xref parameter output]]
@@ -7,34 +7,30 @@
             ;; require the myproject.hello ns to ensure that it is loaded before this ns.
             ;; is there a neater way to make sure the ns is correct in the :bucket-name param?
             ;; PRs/explanations welcome!
-            ;; [aws.main]
+            ;; [joustokontti.main]
             ))
+
+(comment
+  (require '(infra [ecs :refer [ecs]]))
+
+  (require '[clojure.data.json :as json])
+  (json/pprint-json (build ecs))
+
+  (require '[clj-yaml.core :as yaml])
+  (yaml/generate-string (build ecs))
+
+  (spit "target/ecs.yaml" (yaml/generate-string (build ecs)))
+)
 
 (def basename "joustokontti")
 
-(comment
-(require '(aws [infra :refer [ecs]]))
-;; (require '(clojure [pprint :refer [pprint]]))
-;; (pprint (encode ecs))
-;; (require '[clojure.data.json :as json])
-;; (clojure.data.json/pprint-json (encode ecs))
-(clojure.data.json/pprint-json (build ecs))
-
-(require '[clj-yaml.core :as yaml])
-(yaml/generate-string (build ecs))
-(spit "target/cf.yaml" (yaml/generate-string (build ecs)))
-
-lein do clean, templates
-)
-
 (def ecs
-  (template "Joustokontti ECS template"
+  (template "A simple demo template"
 
-            :cluster (ecs/cluster {::cluster-name "joustokontti-cluster"})
+            :cluster (ecs/cluster {::cluster-name (str basename "-cluster")})
 
             ;; use the namespace of myproject.hello to define the bucket name
-            ;; :bucket-name (parameter :default (str (-> 'aws.main the-ns str) "-repo"))
-            :bucket-name (parameter :default (str basename "-repo"))
+            ;; :bucket-name (parameter :default (str (-> 'myproject.hello the-ns str) "-repo"))
 
             ;; create a bucket with website hosting enabled
             :bucket (s3/bucket {::s3/access-control "PublicRead"
