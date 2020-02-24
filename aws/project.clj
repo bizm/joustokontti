@@ -4,6 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "https://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.0"]
+                 [org.clojure/data.json "0.2.7"]
+                 ;; [cheshire "5.10.0"]
+                 [clj-commons/clj-yaml "0.7.0"]
                  [crucible "0.45.2"]]
   :target-path "target/%s"
 

@@ -12,9 +12,20 @@
 
 (def basename "joustokontti")
 
-;; (require '(aws [infra :refer [ecs]]))
+(comment
+(require '(aws [infra :refer [ecs]]))
 ;; (require '(clojure [pprint :refer [pprint]]))
 ;; (pprint (encode ecs))
+;; (require '[clojure.data.json :as json])
+;; (clojure.data.json/pprint-json (encode ecs))
+(clojure.data.json/pprint-json (build ecs))
+
+(require '[clj-yaml.core :as yaml])
+(yaml/generate-string (build ecs))
+(spit "target/cf.yaml" (yaml/generate-string (build ecs)))
+
+lein do clean, templates
+)
 
 (def ecs
   (template "Joustokontti ECS template"
