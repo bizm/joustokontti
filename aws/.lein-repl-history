@@ -1,0 +1,69 @@
+(clojure.pprint/pprint (encode joustokontti-ecs))
+qui
+quit
+(clojure.pprint/pprint (encode joustokontti-ecs))
+(print joustokontti-ecs)
+print -main
+(print -main)
+(print joustokontti-ecs)
+(print -main)
+(print joutokontti-ecs)
+(require '(cloudformation.infrastructure))
+(print joutokontti-ecs)
+(print joustokontti-ecs)
+(require '(cloudformation.infrastructur))
+(print joustokontti-ecs)
+(require '(joustokontti.infrastructure))
+(print joustokontti-ecs)
+(print -main)
+(require 'joustokontti.infrastructure)
+(print joustokontti-ecs)
+joustokontti.infrastructure/joustokontti-ecs
+(require 'joustokontti.infrastructure)
+joustokontti.infrastructure/joustokontti-ecs
+-main
+(print -main)
+-main
+ecs
+(require '(aws.infra))
+ecs
+(require 'aws.infra)
+ecs
+(require 'aws.infra)
+ecs
+aws.infra/ecs
+(require [aws.infra :as aws])
+(require '(aws [infra :as aws]))
+aws/ecs
+(require '(aws [infra :as aws :refer [ecs]))
+(require '(aws [infra :as aws :refer [ecs]]))
+ecs
+(require '(aws.infra :refer [ecs]))
+(require '(aws [infra :refer [ecs]]))
+ecs
+(require '(aws [infra :refer [ecs]]))
+(def foo "bar")
+foo
+(def base-name "base-name")
+base-name
+(require '(aws [infra :refer [ecs]]))
+(require 'aws.infra)
+ecs
+basename
+aws.infra/basename
+(require '(aws.infra))
+aws.infra/basename
+basename
+(require '(aws [infra :refer [ecs]]))
+(require 'aws.infra)
+aws.infra/ecs
+(require '(aws.infra))
+aws.infra/ecs
+(require '(aws.infra))
+aws.infra/ecs
+(require '(aws [infra :refer [ecs]]))
+ecs
+(clojure.pprint/pprint ecs)
+(require '(clojure [pprint :refer pprint]))
+(require '(clojure [pprint :refer [pprint]]))
+(pprint ecs)

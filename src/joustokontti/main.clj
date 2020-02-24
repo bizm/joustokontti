@@ -14,7 +14,7 @@
   [req]
   {:status 200
    :headers {"content-type" "text/plain"}
-   :body "hello world!"})
+   :body "howdy universe!"})
 
 (def handler
   (params/wrap-params
