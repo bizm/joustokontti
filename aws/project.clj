@@ -3,8 +3,8 @@
   :url "http://github.com/valentynderkach/joustokontti"
   :license {:name "Eclipse Public License"
             :url "https://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0-alpha10"]
-                 [crucible "0.10.0-SNAPSHOT"]]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [crucible "0.45.2"]]
   :target-path "target/%s"
 
   ;; alias "lein templates" to find and encode any templates in the project

@@ -12,8 +12,14 @@
 
 (def basename "joustokontti")
 
+;; (require '(aws [infra :refer [ecs]]))
+;; (require '(clojure [pprint :refer [pprint]]))
+;; (pprint (encode ecs))
+
 (def ecs
   (template "Joustokontti ECS template"
+
+            :cluster (ecs/cluster {::cluster-name "joustokontti-cluster"})
 
             ;; use the namespace of myproject.hello to define the bucket name
             ;; :bucket-name (parameter :default (str (-> 'aws.main the-ns str) "-repo"))
