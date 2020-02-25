@@ -18,10 +18,11 @@
   ;; :aliases {"templates" ["run" "-m" crucible.encoding.main]}
 
   ;; lein with-profile aws repl
+  ;; lein with-profile aws run ecs
   :profiles {:aws {:source-paths ["aws"]
                    :main infra.main
                    :dependencies [[nrepl "0.6.0"]
                                   [org.clojure/data.json "0.2.7"]
                                   ;; [cheshire "5.10.0"]
                                   [clj-commons/clj-yaml "0.7.0"]
-                                  [crucible "0.45.2"]]}})
+                                  [crucible "0.45.3"]]}})

@@ -1,8 +1,11 @@
 (ns infra.ecs
   (:require [crucible.aws.s3 :as s3]
+            [crucible.aws.ec2 :as ec2]
             [crucible.aws.ecs :as ecs]
-            [crucible.core :refer [template xref parameter output]]
+            [crucible.core :refer [template xref parameter output join]]
+            ;; [crucible.encoding :refer [build]]
             [crucible.policies :as policies]
+            ;; [clj-yaml.core :as yaml]
 
             ;; require the myproject.hello ns to ensure that it is loaded before this ns.
             ;; is there a neater way to make sure the ns is correct in the :bucket-name param?
@@ -24,8 +27,19 @@
 
 (def basename "joustokontti")
 
+(defn cidr-block [mask]
+  (join "/" [(xref :ip-address) (str mask)]))
+
 (def ecs
-  (template "A simple demo template"
+  (template "ECS Fargate demo template"
+
+            :ip-address (parameter ::default "10.192.0.0")
+
+            :vpc (ec2/vpc {::ec2/cidr-block (cidr-block 24)})
+            :subnet (ec2/subnet {
+              ::ec2/vpc-id (xref :vpc)
+              ::ec2/cidr-block (cidr-block 28)
+              ::ec2/map-public-ip-on-launch "true"})
 
             :cluster (ecs/cluster {::cluster-name (str basename "-cluster")})
 
