@@ -27,21 +27,27 @@
 
 (def basename "joustokontti")
 
+(defn resource-name [resource-kind]
+  (clojure.string/join "-" [basename resource-kind]))
+
 (defn cidr-block [mask]
   (join "/" [(xref :ip-address) (str mask)]))
 
 (def ecs
   (template "ECS Fargate demo template"
 
+            ;; template parameters
             :ip-address (parameter ::default "10.192.0.0")
 
+            ;; ec2 resources
             :vpc (ec2/vpc {::ec2/cidr-block (cidr-block 24)})
             :subnet (ec2/subnet {
               ::ec2/vpc-id (xref :vpc)
               ::ec2/cidr-block (cidr-block 28)
               ::ec2/map-public-ip-on-launch "true"})
 
-            :cluster (ecs/cluster {::cluster-name (str basename "-cluster")})
+            ;; ecs resources
+            :cluster (ecs/cluster {::cluster-name (resource-name "cluster")})
 
             ;; use the namespace of myproject.hello to define the bucket name
             ;; :bucket-name (parameter :default (str (-> 'myproject.hello the-ns str) "-repo"))
