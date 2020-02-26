@@ -1,3 +1,4 @@
+# docker build --rm -t joustokontti:latest .
 # docker run -it --rm -p 10000:10000 joustokontti
 
 FROM clojure:latest
