@@ -1,6 +1,8 @@
 (ns infra.ecs
   (:require [crucible.aws.s3 :as s3]
             [crucible.aws.ec2 :as ec2]
+            [crucible.aws.ec2.vpc-gateway-attachment :as igw-attachment]
+            [crucible.aws.ec2.subnet-route-table-association :as sub-rt-association]
             [crucible.aws.ecs :as ecs]
             [crucible.core :refer [template xref parameter output join]]
             ;; [crucible.encoding :refer [build]]
@@ -45,6 +47,19 @@
               ::ec2/vpc-id (xref :vpc)
               ::ec2/cidr-block (cidr-block 28)
               ::ec2/map-public-ip-on-launch "true"})
+            :igw (ec2/internet-gateway {})
+            :igw-attachment (igw-attachment/vpc-gateway-attachment {
+              ::igw-attachment/vpc-id (xref :vpc)
+              ::igw-attachment/internet-gateway-id (xref :igw)})
+            :route-table (ec2/route-table {::ec2/vpc-id (xref :vpc)})
+            :public-route (ec2/route {
+              ::ec2/route-table-id (xref :route-table)
+              ::ec2/destination-cidr-block "0.0.0.0/0"
+              ::ec2/gateway-id (xref :igw)}
+              (policies/depends-on :igw-attachment))
+            :subnet-route-table-association (sub-rt-association/subnet-route-table-association {
+              ::sub-rt-association/route-table-id (xref :route-table)
+              ::sub-rt-association/subnet-id (xref :subnet)})
 
             ;; ecs resources
             :cluster (ecs/cluster {::cluster-name (resource-name "cluster")})
@@ -53,10 +68,11 @@
             ;; :bucket-name (parameter :default (str (-> 'myproject.hello the-ns str) "-repo"))
 
             ;; create a bucket with website hosting enabled
-            :bucket (s3/bucket {::s3/access-control "PublicRead"
-                                ::s3/website-configuration {::s3/index-document "index.html"
-                                                            ::s3/error-document "error.html"}}
-                               (policies/deletion ::policies/retain))
+            ;; :bucket (s3/bucket {::s3/access-control "PublicRead"
+            ;;                     ::s3/website-configuration {::s3/index-document "index.html"
+            ;;                                                 ::s3/error-document "error.html"}}
+            ;;                    (policies/deletion ::policies/retain))
 
             ;; output the domain name of the s3 bucket website
-            :website-domain (output (xref :bucket :domain-name))))
+            ;; :website-domain (output (xref :bucket :domain-name))
+            ))
