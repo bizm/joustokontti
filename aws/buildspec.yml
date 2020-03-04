@@ -1,0 +1,60 @@
+---
+version: 0.2
+env:
+  variables:
+    # DOCKER_IMAGE_REPO_ARN: "${AWS_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com/test/session-int-default:latest"
+    ECR_REPOSITORY_ARN: ''
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+    commands:
+      # initialize Docker daemon
+      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=overlay&
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+  pre_build:
+    commands:
+      - echo $ECR_REPOSITORY_ARN
+      - "ECR_REPOSITORY_REGISTRY_ID=$(echo $ECR_REPOSITORY_ARN | cut -d: -f5)"
+      - echo $ECR_REPOSITORY_REGISTRY_ID
+      - "ECR_REPOSITORY_NAME=$(echo $ECR_REPOSITORY_ARN | cut -d: -f6 | cut -d/ -f2-)"
+      - echo $ECR_REPOSITORY_NAME
+      - aws ecr describe-repositories --registry-id $ECR_REPOSITORY_REGISTRY_ID --repository-names $ECR_REPOSITORY_NAME > ecr-repositories.json
+      - ECR_REPOSITORY_URI=$(jq -r ".repositories[] | select(.repositoryArn==\"$ECR_REPOSITORY_ARN\") | .repositoryUri" ecr-repositories.json)
+      - echo $ECR_REPOSITORY_URI
+      - DOCKER_IMAGE_NAME=joustokontti
+      - DOCKER_IMAGE_AWS_NAME=joustokontti-aws
+      - PROJECT_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" pom.xml)
+      - echo $PROJECT_VERSION
+      - if ( echo $PROJECT_VERSION | grep -qx '[0-9\.]\{1,\}' ) ; then PROJECT_RELEASE=true; else PROJECT_RELEASE=false; fi
+      - echo $PROJECT_RELEASE
+      - DOCKER_TAG=$PROJECT_VERSION
+      - if ( ! $PROJECT_RELEASE ) ; then DOCKER_TAG=$PROJECT_VERSION-$(date +%Y%m%d%H%M); fi
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION --registry-ids $ECR_REPOSITORY_REGISTRY_ID)
+  build:
+    commands:
+      - "echo Build started on `date`"
+      - "echo Building jar package..."
+      - "mvn clean compile package -P test,verbose"
+      - "echo Building the Docker image..."
+      - "docker build --rm -t $DOCKER_IMAGE_NAME ."
+      - "docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:$DOCKER_TAG"
+      - if ( $PROJECT_RELEASE ) ; then docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:latest; fi
+      - "echo Generating CloudFormation template"
+      - sh aws/generate-cf-template.sh
+  post_build:
+    commands:
+      - "echo Build completed on `date`"
+      - docker images
+      - "echo Pushing the Docker image..."
+      - "docker push $ECR_REPOSITORY_URI:$DOCKER_TAG"
+      - if ( $PROJECT_RELEASE ) ; then docker push $ECR_REPOSITORY_URI:latest; fi
+      - echo Producing build artifact...
+      - "echo \"{ \\\"Version\\\" : \\\"$PROJECT_VERSION\\\", \\\"Release\\\": \\\"$PROJECT_RELEASE\\\", \\\"DockerImageURI\\\": \\\"$ECR_REPOSITORY_URI:$DOCKER_TAG\\\" }\" > meta.json"
+      - "head meta.json"
+artifacts:
+  files:
+    - meta.json
+    - aws/session-vpc-api-ecs.yml
+  name: build-artifact

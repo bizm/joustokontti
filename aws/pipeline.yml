@@ -1,0 +1,435 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Joustokontti CD pipeline template"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+  ECRRepositoryArn:
+    Type: String
+  GitHubOwner:
+    Type: String
+    Default: Teosto
+  GitHubRepository:
+    Type: String
+    Default: session
+  GitHubBranch:
+    Type: String
+  CertificateArn:
+    Description: "The reference to an AWS-managed certificate to be passed to ECS stack"
+    Type: String
+  SessionJwtKeySecretArn:
+    Description: ARN of secret with Session JWT signing key
+    Type: String
+  TeostoJwtKeySecretArn:
+    Description: ARN of secret with Teosto(SoRa) JWT signing key
+    Type: String
+
+Resources:
+
+  DockerBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub session-${Environment}-codebuild
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: aws/buildspec.yml
+      SourceVersion: master
+      ServiceRole: !GetAtt
+        - CodeBuildServiceRole
+        - Arn
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        # Ubuntu image
+        Image: aws/codebuild/standard:2.0-1.13.0
+        # privileged mode is required for building docker image
+        PrivilegedMode: true
+        # environment variables are supplied from pipeline
+
+  CodeBuildServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub session-${Environment}-codebuild-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub session-${Environment}-codebuild-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'ecr:*'
+                Resource: '*'
+
+  CodePipelineArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      # Make bucket name unique by adding stack id
+      BucketName: !Join
+        - "-"
+        - - !Sub session-${Environment}-pipeline-artifacts
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 1
+            Status: Enabled
+          - NoncurrentVersionExpirationInDays: 1
+            Status: Enabled
+    DeletionPolicy: Delete
+
+  CodePipelineArtifactStoreBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref CodePipelineArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:PutObject'
+            Resource: !Sub
+              - ${BucketArn}/*
+              - { BucketArn: !GetAtt CodePipelineArtifactStoreBucket.Arn }
+            Condition:
+              StringNotEquals:
+                's3:x-amz-server-side-encryption': 'aws:kms'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: !Sub
+              - ${BucketArn}/*
+              - { BucketArn: !GetAtt CodePipelineArtifactStoreBucket.Arn }
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn:
+      - DockerBuildProject
+      - CodePipelineArtifactStoreBucket
+      - CodePipelineArtifactStoreBucketPolicy
+    Properties:
+      Name: !Sub session-${Environment}-pipeline
+      RoleArn: !GetAtt
+        - CodePipelineServiceRole
+        - Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineArtifactStoreBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepository
+                PollForSourceChanges: true
+                Branch: !Ref GitHubBranch
+                OAuthToken: "{{resolve:secretsmanager:CICD-token:SecretString:GitHubAuthToken}}"
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: DockerBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref DockerBuildProject
+                PrimarySource: SourceOutput
+                EnvironmentVariables: !Sub |
+                  [
+                    {"name": "ECR_REPOSITORY_ARN", "value": "${ECRRepositoryArn}", "type": "PLAINTEXT" }
+                  ]
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: Deploy
+              InputArtifacts:
+                - Name: SourceOutput
+                - Name: BuildOutput
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM
+                RoleArn: !GetAtt
+                  - CloudFormationServiceRole
+                  - Arn
+                StackName: !Sub session-${Environment}-ecs
+                TemplatePath: "BuildOutput::aws/session-vpc-api-ecs.yml"
+                # PipelineStackName parameter is reserved for future use so that ECS stack can refer outputs of Pipeline stack
+                ParameterOverrides: !Sub
+                  - |
+                    {
+                      "Environment": "${Environment}",
+                      "PipelineStackName" : "${AWS::StackName}",
+                      "DockerImageURI": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] },
+                      "CertificateArn": "${CertificateArn}",
+                      "SessionJwtKeySecretArn": "${SessionJwtKeySecretArn}",
+                      "TeostoJwtKeySecretArn": "${TeostoJwtKeySecretArn}"
+                    }
+              RunOrder: 1
+
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub session-${Environment}-pipeline-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - cloudformation.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub session-${Environment}-pipeline-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:GetRole'
+                  - 'iam:PassRole'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:DeleteRole'
+                  - 'iam:CreateRole'
+                  - 'iam:AttachRolePolicy'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'ec2:*'
+                  - 'elasticloadbalancing:*'
+                  - 'cloudwatch:*'
+                  - 's3:*'
+                  - 'cloudformation:*'
+                  - 'ecs:*'
+                Resource: '*'
+
+  CloudFormationServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub session-${Environment}-cloudformation-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub session-${Environment}-cloudformation-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:AttachRolePolicy'
+                  - 'iam:CreateRole'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:DeleteRole'
+                  - 'iam:DeleteRolePolicy'
+                  - 'iam:GetRole'
+                  - 'iam:GetRolePolicy'
+                  - 'iam:PassRole'
+                  - 'iam:PutRolePolicy'
+                  - 'iam:TagRole'
+                  - 'iam:UntagRole'
+                  - 'iam:UpdateAssumeRolePolicy'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                  - 'iam:PutRolePolicy'
+                  - 'iam:UpdateRoleDescription'
+                  - 'iam:GetServiceLinkedRoleDeletionStatus'
+                  - 'iam:DeleteServiceLinkedRole'
+                Resource: 'arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*'
+                Condition:
+                  StringLike:
+                    'iam:AWSServiceName': 'ecs.amazonaws.com'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:DeleteLogGroup'
+                  - 'logs:DeleteLogStream'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'ec2:AssociateRouteTable'
+                  - 'ec2:AssociateSubnetCidrBlock'
+                  - 'ec2:AssociateVpcCidrBlock'
+                  - 'ec2:AttachInternetGateway'
+                  - 'ec2:AuthorizeSecurityGroupIngress'
+                  - 'ec2:CreateInternetGateway'
+                  - 'ec2:CreateRoute'
+                  - 'ec2:CreateRouteTable'
+                  - 'ec2:CreateSecurityGroup'
+                  - 'ec2:CreateSubnet'
+                  - 'ec2:CreateTags'
+                  - 'ec2:CreateVpc'
+                  - 'ec2:CreateVpcEndpoint'
+                  - 'ec2:DeleteInternetGateway'
+                  - 'ec2:DeleteRoute'
+                  - 'ec2:DeleteRouteTable'
+                  - 'ec2:DeleteSecurityGroup'
+                  - 'ec2:DeleteSubnet'
+                  - 'ec2:DeleteVpc'
+                  - 'ec2:DeleteVpcEndpoints'
+                  - 'ec2:DescribeAccountAttributes'
+                  - 'ec2:DescribeAvailabilityZones'
+                  - 'ec2:DescribeInternetGateways'
+                  - 'ec2:DescribeRouteTables'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeVpcs'
+                  - 'ec2:DescribeVpcEndpoints'
+                  - 'ec2:DescribeVpcEndpointServices'
+                  - 'ec2:DetachInternetGateway'
+                  - 'ec2:DisassociateRouteTable'
+                  - 'ec2:DisassociateSubnetCidrBlock'
+                  - 'ec2:DisassociateVpcCidrBlock'
+                  - 'ec2:ModifySubnetAttribute'
+                  - 'ec2:ModifyVpcAttribute'
+                  - 'ec2:ModifyVpcEndpoint'
+                  - 'ec2:RevokeSecurityGroupIngress'
+                  - 'ec2:UpdateSecurityGroupRuleDescriptionsIngress'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'elasticloadbalancing:AddTags'
+                  - 'elasticloadbalancing:CreateListener'
+                  - 'elasticloadbalancing:CreateLoadBalancer'
+                  - 'elasticloadbalancing:CreateTargetGroup'
+                  - 'elasticloadbalancing:DeleteListener'
+                  - 'elasticloadbalancing:DeleteLoadBalancer'
+                  - 'elasticloadbalancing:DeleteTargetGroup'
+                  - 'elasticloadbalancing:DescribeListeners'
+                  - 'elasticloadbalancing:DescribeLoadBalancers'
+                  - 'elasticloadbalancing:DescribeTargetGroups'
+                  - 'elasticloadbalancing:ModifyListener'
+                  - 'elasticloadbalancing:ModifyLoadBalancerAttributes'
+                  - 'elasticloadbalancing:ModifyTargetGroup'
+                  - 'elasticloadbalancing:ModifyTargetGroupAttributes'
+                  - 'elasticloadbalancing:RemoveTags'
+                  - 'elasticloadbalancing:SetSecurityGroups'
+                  - 'elasticloadbalancing:SetSubnets'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'ecs:CreateCluster'
+                  - 'ecs:CreateService'
+                  - 'ecs:DeleteCluster'
+                  - 'ecs:DeleteService'
+                  - 'ecs:DeregisterTaskDefinition'
+                  - 'ecs:DescribeClusters'
+                  - 'ecs:DescribeServices'
+                  - 'ecs:RegisterTaskDefinition'
+                  - 'ecs:TagResource'
+                  - 'ecs:UntagResource'
+                  - 'ecs:UpdateService'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                  - 'cloudwatch:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource: !Sub
+                  - ${BucketArn}/*
+                  - { BucketArn: !GetAtt CodePipelineArtifactStoreBucket.Arn }
+              - Effect: Allow
+                Action:
+                  - 'apigateway:*'
+                Resource: !Sub arn:aws:apigateway:${AWS::Region}::*

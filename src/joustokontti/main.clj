@@ -22,10 +22,12 @@
       (GET "/hello"         [] hello-world-handler)
       (route/not-found "No such page."))))
 
+(def port 8080)
+
 (defn start
   []
-  (http/start-server handler {:port 10000})
-  (println "Joustokontti started at port 10000"))
+  (http/start-server handler {:port port})
+  (println "Joustokontti started at port " port))
 
 (defn -main [& args]
   (start))

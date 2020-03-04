@@ -8,4 +8,7 @@ ADD project.clj ./
 ADD src ./src
 RUN lein deps
 
+EXPOSE 8080
+
 ENTRYPOINT ["lein", "run"]
+CMD lein run
