@@ -1,4 +1,4 @@
-(defproject joustokontti "0.1.0-SNAPSHOT"
+(defproject joustokontti "0.1.1-SNAPSHOT"
   :description "ECS example written in Clojure"
   :url "http://github.com/valentynderkach/joustokontti"
   :license {:name "Eclipse Public License"
@@ -8,7 +8,8 @@
                  [compojure "1.6.1"]
                  [aleph "0.4.6"]
                  [hiccup "1.0.5"]
-                 [bidi "2.1.3"]]
+                 [bidi "2.1.3"]
+                 [cheshire "5.10.0"]]
 
   :main joustokontti.main
 

@@ -9,10 +9,17 @@
     [ring.middleware.params :as params]
     [compojure.route :as route]
     [aleph.http :as http]
-    [byte-streams :as bs])
+    [byte-streams :as bs]
+    [cheshire.core :refer :all]))
   (:import (java.net NetworkInterface)))
 
 (def metadata-uri (System/getenv "ECS_CONTAINER_METADATA_URI"))
+
+(def meta-docker (parse-string
+  (-> @(http/get metadata-uri) :body bs/to-string) true))
+
+(def meta-task (parse-string
+  (-> @(http/get (str metadata-uri "/task")) :body bs/to-string) true))
 
 (def ip-address
   (-> (->> (NetworkInterface/getNetworkInterfaces)
@@ -32,7 +39,8 @@
   (newline))
 
 (defn body [content]
-  (str content "\n--\n" ip-address))
+  (str content "\n--\nDockerId: " (get meta-docker :DockerId)
+    "\nDockerName: " (get meta-docker :DockerName)))
 
 (defn hello-world-handler
   [req]
@@ -46,14 +54,14 @@
   (trace "meta-handler" req)
   {:status 202
    :headers {"content-type" "application/json"}
-   :body (-> @(http/get metadata-uri) :body bs/to-string)})
+   :body (generate-string meta-docker)})
 
 (defn meta-task-handler
   [req]
   (trace "meta-task-handler" req)
   {:status 202
     :headers {"content-type" "application/json"}
-    :body (-> @(http/get (str metadata-uri "/task")) :body bs/to-string)})
+    :body (generate-string meta-task)})
 
 (defn meta-stats-handler
   [req]
