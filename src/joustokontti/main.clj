@@ -41,6 +41,34 @@
    :headers {"content-type" "text/plain"}
    :body (body "Howdy universe!")})
 
+(defn meta-handler
+  [req]
+  (trace "meta-handler" req)
+  {:status 202
+   :headers {"content-type" "application/json"}
+   :body (-> @(http/get metadata-uri) :body bs/to-string)})
+
+(defn meta-task-handler
+  [req]
+  (trace "meta-task-handler" req)
+  {:status 202
+    :headers {"content-type" "application/json"}
+    :body (-> @(http/get (str metadata-uri "/task")) :body bs/to-string)})
+
+(defn meta-stats-handler
+  [req]
+  (trace "meta-stats-handler" req)
+  {:status 202
+    :headers {"content-type" "application/json"}
+    :body (-> @(http/get (str metadata-uri "/stats")) :body bs/to-string)})
+
+(defn meta-task-stats-handler
+  [req]
+  (trace "meta-task-stats-handler" req)
+  {:status 202
+    :headers {"content-type" "application/json"}
+    :body (-> @(http/get (str metadata-uri "/task/stats")) :body bs/to-string)})
+
 (defn not-found-handler
   [req]
   (trace "not-found-handler" req)
@@ -51,8 +79,12 @@
 (def handler
   (params/wrap-params
     (compojure/routes
-      (GET "/hello"         [] hello-world-handler)
-      (route/not-found         not-found-handler))))
+      (GET "/hello"           [] hello-world-handler)
+      (GET "/meta"            [] meta-handler)
+      (GET "/meta/task"       [] meta-task-handler)
+      (GET "/meta/stats"      [] meta-stats-handler)
+      (GET "/meta/task/stats" [] meta-task-stats-handler)
+      (route/not-found           not-found-handler))))
 
 (defn start
   [port]
