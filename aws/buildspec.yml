@@ -24,37 +24,37 @@ phases:
       - echo $ECR_REPOSITORY_URI
       - DOCKER_IMAGE_NAME=joustokontti
       - DOCKER_IMAGE_AWS_NAME=joustokontti-aws
-      - PROJECT_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" pom.xml)
+      # - PROJECT_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" pom.xml)
+      - PROJECT_VERSION=$(grep -oP 'defproject \w* "\K[^"]+' project.clj)
       - echo $PROJECT_VERSION
-      - if ( echo $PROJECT_VERSION | grep -qx '[0-9\.]\{1,\}' ) ; then PROJECT_RELEASE=true; else PROJECT_RELEASE=false; fi
-      - echo $PROJECT_RELEASE
       - DOCKER_TAG=$PROJECT_VERSION
-      - if ( ! $PROJECT_RELEASE ) ; then DOCKER_TAG=$PROJECT_VERSION-$(date +%Y%m%d%H%M); fi
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION --registry-ids $ECR_REPOSITORY_REGISTRY_ID)
   build:
     commands:
       - "echo Build started on `date`"
-      - "echo Building jar package..."
-      - "mvn clean compile package -P test,verbose"
-      - "echo Building the Docker image..."
+      - "echo Building Docker image..."
       - "docker build --rm -t $DOCKER_IMAGE_NAME ."
       - "docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:$DOCKER_TAG"
-      - if ( $PROJECT_RELEASE ) ; then docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:latest; fi
+      # - if ( $PROJECT_RELEASE ) ; then docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:latest; fi
       - "echo Generating CloudFormation template"
-      - sh aws/generate-cf-template.sh
+      # - "docker build --rm -t $DOCKER_IMAGE_AWS_NAME -f Dockerfile.dev ."
+      - docker run --rm -d -v "$(pwd)":/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name $DOCKER_IMAGE_AWS_NAME clojure:latest sleep inf
+      - docker exec joustokontti-aws bash -c "lein with-profile aws run ecs"
+      - docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yaml .
+      - docker container rm -f $DOCKER_IMAGE_AWS_NAME
+      # - sh aws/generate-cf-template.sh
   post_build:
     commands:
       - "echo Build completed on `date`"
       - docker images
       - "echo Pushing the Docker image..."
       - "docker push $ECR_REPOSITORY_URI:$DOCKER_TAG"
-      - if ( $PROJECT_RELEASE ) ; then docker push $ECR_REPOSITORY_URI:latest; fi
       - echo Producing build artifact...
-      - "echo \"{ \\\"Version\\\" : \\\"$PROJECT_VERSION\\\", \\\"Release\\\": \\\"$PROJECT_RELEASE\\\", \\\"DockerImageURI\\\": \\\"$ECR_REPOSITORY_URI:$DOCKER_TAG\\\" }\" > meta.json"
+      - "echo \"{ \\\"Version\\\" : \\\"$PROJECT_VERSION\\\", \\\"DockerImageURI\\\": \\\"$ECR_REPOSITORY_URI:$DOCKER_TAG\\\" }\" > meta.json"
       - "head meta.json"
 artifacts:
   files:
     - meta.json
-    - aws/session-vpc-api-ecs.yml
+    - ecs.yaml
   name: build-artifact

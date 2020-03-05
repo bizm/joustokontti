@@ -43,8 +43,9 @@ docker build --rm -t joustokontti:dev -f Dockerfile.dev .
 docker run -it --rm -p 10000:10000 -v "$(pwd)":/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
 docker run -it --rm -p 10000:10000 -v `pwd`:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
 # Windows command line
-docker run -it --rm -p 10000:10000 -v %cd%:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
+docker run -it --rm -p 8080:8080 -v %cd%:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
 docker run -it -v %cd%:/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
+docker run --rm -d -v %cd%:/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name joustokontti-aws clojure:latest sleep inf
 # Windows PowerShell
 docker run -it --rm -p 10000:10000 -v ${PWD}:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
 ```

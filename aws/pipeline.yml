@@ -3,38 +3,27 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: "Joustokontti CD pipeline template"
 
 Parameters:
-  Environment:
-    Type: String
-    Default: test
-    AllowedValues:
-      - test
-      - prod
-  ECRRepositoryArn:
-    Type: String
   GitHubOwner:
     Type: String
-    Default: Teosto
   GitHubRepository:
     Type: String
-    Default: session
   GitHubBranch:
     Type: String
-  CertificateArn:
-    Description: "The reference to an AWS-managed certificate to be passed to ECS stack"
-    Type: String
-  SessionJwtKeySecretArn:
-    Description: ARN of secret with Session JWT signing key
-    Type: String
-  TeostoJwtKeySecretArn:
-    Description: ARN of secret with Teosto(SoRa) JWT signing key
+    Default: master
+  GitHubOAuthToken:
     Type: String
 
 Resources:
 
+  ECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${AWS::StackName}-ecr
+
   DockerBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub session-${Environment}-codebuild
+      Name: !Sub ${AWS::StackName}-codebuild
       Artifacts:
         Type: CODEPIPELINE
       Source:
@@ -56,7 +45,7 @@ Resources:
   CodeBuildServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub session-${Environment}-codebuild-role
+      RoleName: !Sub ${AWS::StackName}-codebuild-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -67,7 +56,7 @@ Resources:
             Action: 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Sub session-${Environment}-codebuild-policy
+        - PolicyName: !Sub ${AWS::StackName}-codebuild-policy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -86,7 +75,7 @@ Resources:
       # Make bucket name unique by adding stack id
       BucketName: !Join
         - "-"
-        - - !Sub session-${Environment}-pipeline-artifacts
+        - - !Sub ${AWS::StackName}-artifacts
           - !Select
             - 0
             - !Split
@@ -148,7 +137,7 @@ Resources:
       - CodePipelineArtifactStoreBucket
       - CodePipelineArtifactStoreBucketPolicy
     Properties:
-      Name: !Sub session-${Environment}-pipeline
+      Name: !Sub ${AWS::StackName}-codepipeline
       RoleArn: !GetAtt
         - CodePipelineServiceRole
         - Arn
@@ -171,7 +160,8 @@ Resources:
                 Repo: !Ref GitHubRepository
                 PollForSourceChanges: true
                 Branch: !Ref GitHubBranch
-                OAuthToken: "{{resolve:secretsmanager:CICD-token:SecretString:GitHubAuthToken}}"
+                # OAuthToken: "{{resolve:secretsmanager:CICD-token:SecretString:GitHubAuthToken}}"
+                OAuthToken: !Ref GitHubOAuthToken
               RunOrder: 1
         - Name: Build
           Actions:
@@ -188,10 +178,11 @@ Resources:
               Configuration:
                 ProjectName: !Ref DockerBuildProject
                 PrimarySource: SourceOutput
-                EnvironmentVariables: !Sub |
-                  [
-                    {"name": "ECR_REPOSITORY_ARN", "value": "${ECRRepositoryArn}", "type": "PLAINTEXT" }
-                  ]
+                EnvironmentVariables: !Sub
+                  - [
+                      {"name": "ECR_REPOSITORY_ARN", "value": "${ECRRepositoryArn}", "type": "PLAINTEXT" }
+                    ]
+                  - ECRRepsitoryArn: !GetAtt ECR.Arn
               RunOrder: 1
         - Name: Deploy
           Actions:
@@ -210,25 +201,21 @@ Resources:
                 RoleArn: !GetAtt
                   - CloudFormationServiceRole
                   - Arn
-                StackName: !Sub session-${Environment}-ecs
-                TemplatePath: "BuildOutput::aws/session-vpc-api-ecs.yml"
+                StackName: !Sub ${AWS::StackName}-ecs
+                TemplatePath: "BuildOutput::ecs.yml"
                 # PipelineStackName parameter is reserved for future use so that ECS stack can refer outputs of Pipeline stack
                 ParameterOverrides: !Sub
                   - |
                     {
-                      "Environment": "${Environment}",
                       "PipelineStackName" : "${AWS::StackName}",
-                      "DockerImageURI": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] },
-                      "CertificateArn": "${CertificateArn}",
-                      "SessionJwtKeySecretArn": "${SessionJwtKeySecretArn}",
-                      "TeostoJwtKeySecretArn": "${TeostoJwtKeySecretArn}"
+                      "DockerImageURI": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
                     }
               RunOrder: 1
 
   CodePipelineServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub session-${Environment}-pipeline-role
+      RoleName: !Sub ${AWS::StackName}-codepipeline-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -240,7 +227,7 @@ Resources:
             Action: 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Sub session-${Environment}-pipeline-policy
+        - PolicyName: !Sub ${AWS::StackName}-codepipeline-policy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -280,7 +267,7 @@ Resources:
   CloudFormationServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub session-${Environment}-cloudformation-role
+      RoleName: !Sub ${AWS::StackName}-cloudformation-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -291,7 +278,7 @@ Resources:
             Action: 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Sub session-${Environment}-cloudformation-policy
+        - PolicyName: !Sub ${AWS::StackName}-cloudformation-policy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
