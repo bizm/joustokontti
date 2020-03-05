@@ -250,6 +250,7 @@
                   ::service/subnets [(xref :subnet-a) (xref :subnet-b)]
                   ::service/security-groups [(xref :ecs-security-group)]
                   ::service/assign-public-ip "ENABLED"}}
+              ::service/health-check-grace-period-seconds 90
               ::service/load-balancers [{
                 ::service/container-name (resource-name "clj")
                 ::service/container-port (xref :port)
