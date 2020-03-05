@@ -60,6 +60,7 @@
   (println "Joustokontti started at port" port)
   (println "IP: " ip-address)
   (println "metadata uri: " metadata-uri)
+  (println (-> @(http/get metadata-uri) :body bs/to-string))
   (println "--")
   (newline))
 
