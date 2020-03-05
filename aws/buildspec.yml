@@ -41,7 +41,7 @@ phases:
       # - "docker build --rm -t $DOCKER_IMAGE_AWS_NAME -f Dockerfile.dev ."
       - docker run --rm -d -v "$(pwd)":/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name $DOCKER_IMAGE_AWS_NAME clojure:latest sleep inf
       - docker exec joustokontti-aws bash -c "lein with-profile aws run ecs"
-      - docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yaml .
+      - docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yml .
       - docker container rm -f $DOCKER_IMAGE_AWS_NAME
       # - sh aws/generate-cf-template.sh
   post_build:
@@ -56,5 +56,5 @@ phases:
 artifacts:
   files:
     - meta.json
-    - ecs.yaml
+    - ecs.yml
   name: build-artifact

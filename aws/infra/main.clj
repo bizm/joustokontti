@@ -15,7 +15,7 @@
   (let [template-name (first args)]
     (require 'infra.ecs)
     (let [template-body (eval (symbol "infra.ecs" (first args)))
-          file-path (str "target/" template-name ".yaml")]
+          file-path (str "target/" template-name ".yml")]
       (write-yaml template-body file-path)
       (println "Tsekatkaa" file-path)))
 )

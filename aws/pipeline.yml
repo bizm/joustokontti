@@ -179,10 +179,11 @@ Resources:
                 ProjectName: !Ref DockerBuildProject
                 PrimarySource: SourceOutput
                 EnvironmentVariables: !Sub
-                  - [
+                  - |
+                    [
                       {"name": "ECR_REPOSITORY_ARN", "value": "${ECRRepositoryArn}", "type": "PLAINTEXT" }
                     ]
-                  - ECRRepsitoryArn: !GetAtt ECR.Arn
+                  - { ECRRepositoryArn: !GetAtt ECR.Arn }
               RunOrder: 1
         - Name: Deploy
           Actions:
@@ -204,11 +205,10 @@ Resources:
                 StackName: !Sub ${AWS::StackName}-ecs
                 TemplatePath: "BuildOutput::ecs.yml"
                 # PipelineStackName parameter is reserved for future use so that ECS stack can refer outputs of Pipeline stack
-                ParameterOverrides: !Sub
-                  - |
-                    {
-                      "DockerImageUri": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
-                    }
+                ParameterOverrides: |
+                  {
+                    "DockerImageUri": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
+                  }
               RunOrder: 1
 
   CodePipelineServiceRole:
