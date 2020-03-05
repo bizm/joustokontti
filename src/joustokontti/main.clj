@@ -44,7 +44,7 @@
 (defn trace [handler-name req]
   (println handler-name)
   (clojure.pprint/pprint   req)
-  (newline))
+  (println "\n--\n"))
 
 (defn body [content]
   (str content "\n--\n"

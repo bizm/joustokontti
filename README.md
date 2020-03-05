@@ -1,8 +1,68 @@
-# exopaste
+# JoustoKontti
 
-FIXME: description
+A simple stupid Clojure project that implements:
+* HTTP server that is able to display all the ECS task metadata
+* Cloudformation ECS Fargate stack generator
 
-## Installation
+In order to run the project locally you would need any tool for executing Clojure code. In this README we'll use Leiningen. However you can survive with only Docker and console.
+
+## HTTP server
+
+Basically server is pretty simple. It has one `/hello` endpoint (test) and four endpoints (json) serving [ECS metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v3.html) -- `/meta`, `/meta/task`, `/meta/stats`, `/meta/task/stats`.
+
+### Running server locally with Docker
+
+```shell
+# Build docker image
+docker build --rm -t joustokontti:latest .
+# Run docker container
+docker run -it --rm -p 8080:8080 joustokontti
+```
+
+### Running server with ECS Fargate
+
+...
+
+## Cloudformation template generation
+
+This project is using [brabster/crucible](https://github.com/brabster/crucible) library to generate Cloudformation template. All the generation-related codebase is under (/aws). You would need to use `aws` profile.
+
+### Generator environment setup
+
+If you have Leiningen installed you're ready to go. If you don't you can create a separate container for generator environment.
+
+```shell
+# Make sure you're in a project directory and then
+docker run -it --rm -p 10000:10000 -v "$(pwd)":/usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
+# or
+docker run -it --rm -p 10000:10000 -v `pwd`:/usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
+# or (Windows command line)
+docker run -it -v %cd%:/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
+# or (Windows PowerShell)
+docker run -it --rm -p 10000:10000 -v ${PWD}:/usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
+```
+
+### Lein repl
+```shell
+lein with-profile aws repl
+```
+
+Templates in crucible are basically maps.
+```shell
+# require ecs template
+(require '[infra.ecs :refer [ecs]])
+# pretty print it
+(clojure.pprint/pprint ecs)
+```
+
+```shell
+docker exec joustokontti-aws bash -c "lein with-profile aws run ecs"
+docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yaml .
+```
+
+ This README will provide you with
+```shell
+```
 
 Download from http://example.com/FIXME.
 
@@ -33,26 +93,7 @@ FIXME: listing of options this app accepts.
 
 ## Docker
 
-```shell
-docker build --rm -t joustokontti:latest .
-docker run -it --rm -p 8080:8080 joustokontti
-```
 
-```shell
-docker build --rm -t joustokontti:dev -f Dockerfile.dev .
-docker run -it --rm -p 10000:10000 -v "$(pwd)":/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
-docker run -it --rm -p 10000:10000 -v `pwd`:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
-# Windows command line
-docker run -it --rm -p 8080:8080 -v %cd%:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
-docker run -it -v %cd%:/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name joustokontti-aws clojure:latest bash
-docker run --rm -d -v %cd%:/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name joustokontti-aws clojure:latest sleep inf
-# Windows PowerShell
-docker run -it --rm -p 10000:10000 -v ${PWD}:/usr/local/src/joustokontti --name joustokontti-dev joustokontti:dev
-```
-```shell
-docker exec joustokontti-aws bash -c "lein with-profile aws run ecs"
-docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yaml .
-```
 
 ## aws
 
