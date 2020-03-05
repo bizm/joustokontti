@@ -8,26 +8,56 @@
     [compojure.core :as compojure :refer [GET]]
     [ring.middleware.params :as params]
     [compojure.route :as route]
-    [aleph.http :as http]))
+    [aleph.http :as http])
+  (:import (java.net NetworkInterface)))
+
+(def ip-address
+  (-> (->> (NetworkInterface/getNetworkInterfaces)
+         enumeration-seq
+         (map bean)
+         (mapcat :interfaceAddresses)
+         (map bean)
+         (filter :broadcast)
+         (filter #(= (.getClass (:address %)) java.net.Inet4Address)))
+    (nth 0)
+    (get :address)
+    .getHostAddress))
+
+(defn trace [handler-name req]
+  (println handler-name)
+  (clojure.pprint/pprint   req)
+  (newline))
+
+(defn body [content]
+  (str content "\n--\n" ip-address))
 
 (defn hello-world-handler
   [req]
+  (trace "hello-world-handler" req)
   {:status 200
    :headers {"content-type" "text/plain"}
-   :body "howdy universe!"})
+   :body (body "Howdy universe!")})
+
+(defn not-found-handler
+  [req]
+  (trace "not-found-handler" req)
+  {
+    :status 404
+    :body (body "No such page :`(")})
 
 (def handler
   (params/wrap-params
     (compojure/routes
       (GET "/hello"         [] hello-world-handler)
-      (route/not-found "No such page."))))
-
-(def port 8080)
+      (route/not-found         not-found-handler))))
 
 (defn start
-  []
+  [port]
   (http/start-server handler {:port port})
-  (println "Joustokontti started at port " port))
+  (println "Joustokontti started at port" port)
+  (println "IP: " ip-address)
+  (newline))
 
 (defn -main [& args]
-  (start))
+  (let [port (if (seq args) (Integer/parseInt (first args)) 8080)]
+    (start port)))
