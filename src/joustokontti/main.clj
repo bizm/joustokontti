@@ -8,8 +8,11 @@
     [compojure.core :as compojure :refer [GET]]
     [ring.middleware.params :as params]
     [compojure.route :as route]
-    [aleph.http :as http])
+    [aleph.http :as http]
+    [byte-streams :as bs])
   (:import (java.net NetworkInterface)))
+
+(def metadata-uri (System/getenv "ECS_CONTAINER_METADATA_URI"))
 
 (def ip-address
   (-> (->> (NetworkInterface/getNetworkInterfaces)
@@ -56,6 +59,8 @@
   (http/start-server handler {:port port})
   (println "Joustokontti started at port" port)
   (println "IP: " ip-address)
+  (println "metadata uri: " metadata-uri)
+  (println "--")
   (newline))
 
 (defn -main [& args]
