@@ -10,16 +10,24 @@
     [compojure.route :as route]
     [aleph.http :as http]
     [byte-streams :as bs]
-    [cheshire.core :refer :all]))
+    [cheshire.core :refer :all])
   (:import (java.net NetworkInterface)))
 
 (def metadata-uri (System/getenv "ECS_CONTAINER_METADATA_URI"))
 
-(def meta-docker (parse-string
-  (-> @(http/get metadata-uri) :body bs/to-string) true))
+(def hostname (System/getenv "HOSTNAME"))
 
-(def meta-task (parse-string
-  (-> @(http/get (str metadata-uri "/task")) :body bs/to-string) true))
+(def meta-docker
+  (try
+    (parse-string
+      (-> @(http/get metadata-uri) :body bs/to-string) true)
+    (catch Exception e nil)))
+
+(def meta-task
+  (try
+    (parse-string
+      (-> @(http/get (str metadata-uri "/task")) :body bs/to-string) true)
+    (catch Exception e nil)))
 
 (def ip-address
   (-> (->> (NetworkInterface/getNetworkInterfaces)
@@ -39,8 +47,10 @@
   (newline))
 
 (defn body [content]
-  (str content "\n--\nDockerId: " (get meta-docker :DockerId)
-    "\nDockerName: " (get meta-docker :DockerName)))
+  (str content "\n--\n"
+    (if (nil? meta-docker)
+      (str "Hostname: " hostname)
+      (str "DockerId: " (get meta-docker :DockerId) "\nDockerName: " (get meta-docker :DockerName)))))
 
 (defn hello-world-handler
   [req]
@@ -52,30 +62,34 @@
 (defn meta-handler
   [req]
   (trace "meta-handler" req)
-  {:status 202
-   :headers {"content-type" "application/json"}
-   :body (generate-string meta-docker)})
+  (if (nil? meta-docker) {:status 204}
+    {:status 202
+     :headers {"content-type" "application/json"}
+     :body (generate-string meta-docker)}))
 
 (defn meta-task-handler
   [req]
   (trace "meta-task-handler" req)
-  {:status 202
-    :headers {"content-type" "application/json"}
-    :body (generate-string meta-task)})
+  (if (nil? meta-task) {:status 204}
+    {:status 202
+      :headers {"content-type" "application/json"}
+      :body (generate-string meta-task)}))
 
 (defn meta-stats-handler
   [req]
   (trace "meta-stats-handler" req)
-  {:status 202
-    :headers {"content-type" "application/json"}
-    :body (-> @(http/get (str metadata-uri "/stats")) :body bs/to-string)})
+  (if (nil? metadata-uri) {:status 204}
+    {:status 202
+      :headers {"content-type" "application/json"}
+      :body (-> @(http/get (str metadata-uri "/stats")) :body bs/to-string)}))
 
 (defn meta-task-stats-handler
   [req]
   (trace "meta-task-stats-handler" req)
-  {:status 202
-    :headers {"content-type" "application/json"}
-    :body (-> @(http/get (str metadata-uri "/task/stats")) :body bs/to-string)})
+  (if (nil? metadata-uri) {:status 204}
+    {:status 202
+      :headers {"content-type" "application/json"}
+      :body (-> @(http/get (str metadata-uri "/task/stats")) :body bs/to-string)}))
 
 (defn not-found-handler
   [req]
@@ -99,8 +113,9 @@
   (http/start-server handler {:port port})
   (println "Joustokontti started at port" port)
   (println "IP: " ip-address)
+  (println "Hostname: " hostname)
   (println "metadata uri: " metadata-uri)
-  (println (-> @(http/get metadata-uri) :body bs/to-string))
+  (clojure.pprint/pprint meta-docker)
   (println "--")
   (newline))
 
