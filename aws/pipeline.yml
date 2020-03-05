@@ -207,8 +207,7 @@ Resources:
                 ParameterOverrides: !Sub
                   - |
                     {
-                      "PipelineStackName" : "${AWS::StackName}",
-                      "DockerImageURI": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
+                      "DockerImageUri": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
                     }
               RunOrder: 1
 
