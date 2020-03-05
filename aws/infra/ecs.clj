@@ -226,9 +226,9 @@
                 ::container/port-mappings [{
                   ::container/container-port (xref :port)
                   ::container/host-port (xref :port)
-                  ::container/protocol "tcp"
-                  ::container/entry-point ["lein"]
-                  ::container/command ["run", (xref :port)]}]
+                  ::container/protocol "tcp"}]
+                ::container/entry-point ["lein"]
+                ::container/command ["run", (xref :port)]
                 ::container/log-configuration {
                   ::container/log-driver "awslogs"
                   ::container/options {
