@@ -1,4 +1,4 @@
-(defproject joustokontti "0.1.2-SNAPSHOT"
+(defproject joustokontti "0.3.0-SNAPSHOT"
   :description "ECS example written in Clojure"
   :url "http://github.com/valentynderkach/joustokontti"
   :license {:name "Eclipse Public License"
@@ -12,11 +12,6 @@
                  [cheshire "5.10.0"]]
 
   :main joustokontti.main
-
-  ;; TODO: Why all these?! Should i move them to aws profile?
-  ;; :target-path "target/%s"
-  ;; alias "lein templates" to find and encode any templates in the project
-  ;; :aliases {"templates" ["run" "-m" crucible.encoding.main]}
 
   ;; lein with-profile aws repl
   ;; lein with-profile aws run ecs
