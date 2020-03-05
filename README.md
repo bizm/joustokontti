@@ -121,6 +121,11 @@ more ecs.yml
 
 And that's exactly how CodeBuild will be generating template.
 
+## Pipeline stack creation
+
+```shell
+aws cloudformation create-stack --stack-name joustokontti --template-body file://aws/pipeline.yml --parameters ParameterKey=GitHubRepository,ParameterValue=<GitHub repository> ParameterKey=GitHubOwner,ParameterValue=<GitHub owner> ParameterKey=GitHubBranch,ParameterValue=<GitHub branch> ParameterKey=GitHubOAuthToken,ParameterValue=<GitHub OAuth token> --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+```
 
 ## Resources
 
