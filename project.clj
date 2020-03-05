@@ -13,9 +13,6 @@
 
   :main joustokontti.main
 
-  ;; lein with-profile aws repl
-  ;; lein with-profile aws run ecs
-  ;; clear && more target/ecs.yaml
   :profiles {:aws {:source-paths ["aws"]
                    :main infra.main
                    :dependencies [[nrepl "0.6.0"]

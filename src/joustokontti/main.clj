@@ -1,8 +1,3 @@
-;; https://aleph.io/examples/literate.html#aleph.examples.http
-;; https://github.com/ztellman/aleph
-;; https://github.com/exoscale/exopaste/
-;; https://www.exoscale.com/syslog/clojure-application-tutorial/
-;; https://clojurebridge.org/community-docs/docs/getting-started/helloworld/
 (ns joustokontti.main
   (:require
     [compojure.core :as compojure :refer [GET]]
