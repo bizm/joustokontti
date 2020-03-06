@@ -6,7 +6,9 @@ A simple stupid Clojure project that implements:
 
 In order to run the project locally you would need any tool for executing Clojure code. In this README we'll use Leiningen. However you can survive with only Docker and console.
 
+<p align="center">
 ![Overview](/doc/overview.jpg)
+</p>
 
 ## HTTP server
 
