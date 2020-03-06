@@ -6,6 +6,8 @@ A simple stupid Clojure project that implements:
 
 In order to run the project locally you would need any tool for executing Clojure code. In this README we'll use Leiningen. However you can survive with only Docker and console.
 
+![Overview](/doc/overview.jpg)
+
 ## HTTP server
 
 Basically server is pretty simple. It has one `/hello` endpoint (test) and four endpoints (json) serving [ECS metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v3.html) -- `/meta`, `/meta/task`, `/meta/stats`, `/meta/task/stats`.
