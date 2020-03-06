@@ -1,4 +1,4 @@
-(defproject joustokontti "0.3.0-SNAPSHOT"
+(defproject joustokontti "1.0.0"
   :description "ECS example written in Clojure"
   :url "http://github.com/valentynderkach/joustokontti"
   :license {:name "Eclipse Public License"
