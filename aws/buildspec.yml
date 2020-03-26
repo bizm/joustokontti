@@ -2,7 +2,7 @@
 version: 0.2
 env:
   variables:
-    # DOCKER_IMAGE_REPO_ARN: "${AWS_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com/test/session-int-default:latest"
+    # DOCKER_IMAGE_REPO_ARN: "${AWS_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com/{image-name}:{tag}"
     ECR_REPOSITORY_ARN: ''
 phases:
   install:
@@ -23,8 +23,7 @@ phases:
       - ECR_REPOSITORY_URI=$(jq -r ".repositories[] | select(.repositoryArn==\"$ECR_REPOSITORY_ARN\") | .repositoryUri" ecr-repositories.json)
       - echo $ECR_REPOSITORY_URI
       - DOCKER_IMAGE_NAME=joustokontti
-      - DOCKER_IMAGE_AWS_NAME=joustokontti-aws
-      # - PROJECT_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" pom.xml)
+      - DOCKER_CONTAINER_AWS_NAME=joustokontti-aws
       - PROJECT_VERSION=$(grep -oP 'defproject \w* "\K[^"]+' project.clj)
       - echo $PROJECT_VERSION
       - DOCKER_TAG=$PROJECT_VERSION
@@ -39,11 +38,10 @@ phases:
       # - if ( $PROJECT_RELEASE ) ; then docker tag $DOCKER_IMAGE_NAME $ECR_REPOSITORY_URI:latest; fi
       - "echo Generating CloudFormation template"
       # - "docker build --rm -t $DOCKER_IMAGE_AWS_NAME -f Dockerfile.dev ."
-      - docker run --rm -d -v "$(pwd)":/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name $DOCKER_IMAGE_AWS_NAME clojure:latest sleep inf
-      - docker exec joustokontti-aws bash -c "lein with-profile aws run ecs"
-      - docker cp joustokontti-aws:/usr/local/src/joustokontti/target/ecs.yml .
-      - docker container rm -f $DOCKER_IMAGE_AWS_NAME
-      # - sh aws/generate-cf-template.sh
+      - docker run --rm -d -v "$(pwd)":/usr/local/src/joustokontti -w /usr/local/src/joustokontti --name $DOCKER_CONTAINER_AWS_NAME $DOCKER_IMAGE_NAME:latest sleep inf
+      - docker exec $DOCKER_CONTAINER_AWS_NAME bash -c "lein with-profile aws run ecs"
+      - docker cp $DOCKER_CONTAINER_AWS_NAME:/usr/local/src/joustokontti/target/ecs.yml .
+      - docker container rm -f $DOCKER_CONTAINER_AWS_NAME
   post_build:
     commands:
       - "echo Build completed on `date`"

@@ -11,7 +11,8 @@
             [crucible.aws.elbv2.target-group :as elb-tg]
             [crucible.aws.elbv2.listener :as elb-listener]
             [crucible.aws.iam :as iam]
-            [crucible.core :refer [template xref parameter region output join select stack-name]]
+            [crucible.core :refer [template xref parameter region output join select stack-name sub]]
+            [crucible.encoding.keys :refer [->key]]
             [clojure.spec.alpha :as s]
             [crucible.values :as values]
             [crucible.parameters :as param]
@@ -42,7 +43,12 @@
 (defmethod values/encode-value ::select-cidr [{:keys [::count ::cidrBits ::index ::cidr]}]
   (if cidr
     {"Fn::Select" [index {"Fn::Cidr" [cidr count cidrBits]}]}
-    {"Fn::Select" [index {"Fn::Cidr" [(join "/" [(xref :ip-address) "16"]) count cidrBits]}]}))
+    {"Fn::Select" [
+      index
+      {"Fn::Cidr" [
+        {"Fn::Sub" (clojure.string/replace "${var-name}/16" #"var-name" (->key :ip-address))}
+        count cidrBits]}]}))
+    ;; {"Fn::Select" [index {"Fn::Cidr" [(join "/" [(xref :ip-address) "16"]) count cidrBits]}]}))
 (defn select-cidr [count cidrBits index]
   {::values/type ::select-cidr
    ::count count
@@ -208,8 +214,8 @@
             "awslogs-group" (xref :task-log-group)
             "awslogs-stream-prefix" (xref :task-log-stream)}}}]
       ::task/requires-compatibilities ["FARGATE"]
-      ::task/task-role-arn (xref :task-role)
-      ::task/execution-role-arn (xref :task-execution-role)})
+      ::task/task-role-arn (xref :task-role :arn)
+      ::task/execution-role-arn (xref :task-execution-role :arn)})
     :ecs-service (ecs/service {
       ::service/service-name (resource-name "service")
       ::service/cluster (xref :cluster)

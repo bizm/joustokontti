@@ -1,0 +1,10 @@
+project:
+  name: joustokontti
+  regions:
+    - eu-central-1
+  shorten_stack_name: true
+tests:
+  default:
+    template: ./target/ecs.yml
+    parameters:
+      DockerImageUri: test:latest

@@ -1,0 +1,143 @@
+{
+	"info": {
+		"_postman_id": "548889da-05e6-447e-9fae-f5c10375d456",
+		"name": "Joustokontti",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}",
+					"host": [
+						"{{URL}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/hello",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/hello",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"hello"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/meta",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/meta",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"meta"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/meta/task",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/meta/task",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"meta",
+						"task"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/meta/task/stats",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/meta/task/stats",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"meta",
+						"task",
+						"stats"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/meta/stats",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/meta/stats",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"meta",
+						"stats"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "37a5d3bf-2510-42d2-b5ca-a74fc85f146a",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "febcbcb9-f5e6-4ce9-a53f-3d1d38e7153a",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "e42c24be-d23b-414f-8ab0-ddb0cad5f0dd",
+			"key": "URL",
+			"value": "localhost:8080",
+			"type": "string"
+		}
+	],
+	"protocolProfileBehavior": {}
+}
