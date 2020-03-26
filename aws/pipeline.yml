@@ -160,7 +160,6 @@ Resources:
                 Repo: !Ref GitHubRepository
                 PollForSourceChanges: true
                 Branch: !Ref GitHubBranch
-                # OAuthToken: "{{resolve:secretsmanager:CICD-token:SecretString:GitHubAuthToken}}"
                 OAuthToken: !Ref GitHubOAuthToken
               RunOrder: 1
         - Name: Build
@@ -204,7 +203,6 @@ Resources:
                   - Arn
                 StackName: !Sub ${AWS::StackName}-ecs
                 TemplatePath: "BuildOutput::ecs.yml"
-                # PipelineStackName parameter is reserved for future use so that ECS stack can refer outputs of Pipeline stack
                 ParameterOverrides: |
                   {
                     "DockerImageUri": { "Fn::GetParam" : ["BuildOutput", "meta.json", "DockerImageURI"] }
