@@ -7,4 +7,4 @@ tests:
   default:
     template: ./target/ecs.yml
     parameters:
-      DockerImageUri: test:latest
+      DockerImageUri: <paste-real-docker-image-uri-here>
