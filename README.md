@@ -203,7 +203,7 @@ aws cloudformation validate-template --template-body file://target/ecs.yml
 ## Pipeline stack creation
 
 ```shell
-aws cloudformation create-stack --stack-name joustokontti-pipeline --template-body file://aws/pipeline.yml --parameters ParameterKey=GitHubRepository,ParameterValue=<GitHub repository> ParameterKey=GitHubOwner,ParameterValue=<GitHub owner> ParameterKey=GitHubBranch,ParameterValue=<GitHub branch> ParameterKey=GitHubOAuthToken,ParameterValue=<GitHub OAuth token> --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+aws cloudformation create-stack --stack-name joustokontti --template-body file://aws/pipeline.yml --parameters ParameterKey=GitHubRepository,ParameterValue=<GitHub repository> ParameterKey=GitHubOwner,ParameterValue=<GitHub owner> ParameterKey=GitHubBranch,ParameterValue=<GitHub branch> ParameterKey=GitHubOAuthToken,ParameterValue=<GitHub OAuth token> --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 ```
 
 ## Resources
