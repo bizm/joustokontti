@@ -20,8 +20,6 @@ We'll use AWS ECS service with a Fargate launch type.
 
 ![Overview](/doc/overview.jpg)
 
-## Fun part
-
 ### Running server locally with Docker
 
 ```shell
