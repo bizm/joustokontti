@@ -220,7 +220,7 @@
       ::service/service-name (resource-name "service")
       ::service/cluster (xref :cluster)
       ::service/task-definition (xref :task-definition)
-      ::service/desired-count 1
+      ::service/desired-count 2
       ::service/launch-type "FARGATE"
       ::service/network-configuration {
         ::service/aws-vpc-configuration {
