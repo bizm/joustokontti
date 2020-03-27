@@ -6,13 +6,21 @@ A simple stupid Clojure project that implements:
 
 In order to run the project locally you would need any tool for executing Clojure code. In this README we'll use Leiningen. However you can survive with only Docker and console.
 
-![Overview](/doc/overview.jpg)
+## Overview
 
-## HTTP server
+### HTTP server
 
 Basically server is pretty simple. It has one `/hello` endpoint and four endpoints (json) serving [ECS metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v3.html) &mdash; `/meta`, `/meta/task`, `/meta/stats`, `/meta/task/stats`.
 
 Download and import [postman collection](doc/postman_collection.json) to test all the routes.
+
+### Deployment
+
+We'll use AWS ECS service with a Fargate launch type. 
+
+![Overview](/doc/overview.jpg)
+
+## Fun part
 
 ### Running server locally with Docker
 
